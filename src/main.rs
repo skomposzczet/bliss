@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+mod user;
+
 use std::io::Write;
 
 use clap::{Parser, Subcommand};
