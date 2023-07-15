@@ -3,6 +3,7 @@ use reqwest::{Client, Error};
 use url::Url;
 use lemmy_api_common::sensitive::Sensitive;
 use lemmy_api_common::person;
+use lemmy_api_common::site;
 
 const API_BASE: &'static str = "/api/v3"; 
 
@@ -39,6 +40,20 @@ impl Api {
             .clone();
         
         Ok(user.authorize(jwt.to_string()))
+    }
+
+    pub async fn site(&self, user: &User<Authorized>) -> Result<site::GetSiteResponse, Error> {
+        let url = api_path(&user.instance, "site");
+        let params = site::GetSite {
+            auth: Some(Sensitive::new(user.token().to_owned()))
+        };
+        let response = self.client
+            .get(url)
+            .query(&params)
+            .send()
+            .await?;
+        let result = response.json::<site::GetSiteResponse>().await.unwrap();
+        Ok(result)
     }
 
 }
