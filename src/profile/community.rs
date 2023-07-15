@@ -1,4 +1,4 @@
-use lemmy_api_common::{lemmy_db_schema::newtypes::CommunityId, lemmy_db_views_actor::structs::CommunityFollowerView};
+use lemmy_api_common::lemmy_db_schema::{newtypes::CommunityId, source::community};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -8,10 +8,10 @@ pub struct Community {
 }
 
 impl Community {
-    pub fn new(community_view: &CommunityFollowerView) -> Self {
+    pub fn new(community: &community::Community) -> Self {
         Community {
-            name: community_view.community.name.to_owned(),
-            id: community_view.community.id.clone(),
+            name: community.name.to_owned(),
+            id: community.id.clone(),
         }
 
     }

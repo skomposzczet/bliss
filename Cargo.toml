@@ -14,3 +14,4 @@ lemmy_api_common = "=0.18.1-rc.9"
 tokio = { version = "~1", features = ["full"] }
 serde = "1.0.171"
 serde_yaml = "0.9.22"
+chrono = "0.4.26"

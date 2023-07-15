@@ -1,9 +1,12 @@
 use url::Url;
 use std::marker::PhantomData;
 
+#[derive(Clone)]
 pub struct NotAuthorized;
+#[derive(Clone)]
 pub struct Authorized;
 
+#[derive(Clone)]
 pub struct User<AuthState = NotAuthorized> {
     pub username: String,
     pub instance: Url,
