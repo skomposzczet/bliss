@@ -41,15 +41,15 @@ impl LocalProfile {
         Ok(lp)
     }
 
-    pub fn save(&mut self) {
-        let path = Self::path(&self.name, PROFILE_FILENAME).unwrap();
-        println!("{}", path.display());
+    pub fn save(&mut self) -> Result<(), Error> {
+        let path = Self::path(&self.name, PROFILE_FILENAME)?;
         let prev_profile = LocalProfile::load(&self.name);
         if prev_profile.is_ok() {
             self.profile.sync(prev_profile.unwrap().profile);
         }
         let profile = serde_yaml::to_string(&self.profile).unwrap(); 
-        let mut file = File::create(path).unwrap();
-        file.write_all(profile.as_bytes()).unwrap();
+        let mut file = File::create(path)?;
+        file.write_all(profile.as_bytes())?;
+        Ok(())
     }
 }

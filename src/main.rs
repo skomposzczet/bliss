@@ -1,11 +1,15 @@
 #![allow(dead_code)]
 
 mod user;
+mod api;
+mod profile;
+mod bliss;
 
 use std::io::Write;
-
+use bliss::{pull, Error};
 use clap::{Parser, Subcommand};
 use url::Url;
+use user::User;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -16,12 +20,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Pull account settings to local profile
     Pull {
         #[arg(short, long, help="Source username or email")]
         username: String,
 
         #[arg(short, long, help="Source instance")]
         instance: Url,
+
+        #[arg(short, long, help="Local profile name")]
+        profile_name: String,
     },
 }
 
@@ -48,13 +56,22 @@ fn get_password(origin: Origin) -> String {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Pull { username, instance }) => {
+        Some(Commands::Pull { username, instance, profile_name }) => {
             let pw = get_password(Origin::Source);
+            let user = User::new(username, instance);
+            pull(user, pw, profile_name).await?;
+            let instance_name = instance
+                .host_str()
+                .unwrap_or(instance.as_str());
+            println!("Successfully pulled acount {}@{} to local profile '{}'.",
+                    username, instance_name, profile_name);
         },
         None => {}
     }
+    Ok(())
 }

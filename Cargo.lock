@@ -399,6 +399,7 @@ dependencies = [
  "rpassword",
  "serde",
  "serde_yaml",
+ "thiserror",
  "tokio",
  "url",
 ]
@@ -2030,6 +2031,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75071a31761781a74d091387713756966a74ce60eea99a093a5ab3f2cccac3fe"
 dependencies = [
  "libc 0.1.12",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a35fc5b8971143ca348fa6df4f024d4d55264f3468c71ad1c2f365b0a4d58c42"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "463fe12d7993d3b327787537ce8dd4dfa058de32fc2b195ef3cde03dc4771e8f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.25",
 ]
 
 [[package]]

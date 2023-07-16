@@ -22,11 +22,11 @@ impl Api {
             client: Client::new(),
         }
     }
-    pub async fn login(&self, user: User<NotAuthorized>, password: &str) -> Result<User<Authorized>, Error> {
+    pub async fn login(&self, user: User<NotAuthorized>, password: String) -> Result<User<Authorized>, Error> {
         let url = api_path(&user.instance, "user/login");
         let params = person::Login {
             username_or_email: Sensitive::new(user.username.clone()),
-            password: Sensitive::new(password.to_owned()),
+            password: Sensitive::new(password),
             ..Default::default()
         };
         let response = self.client

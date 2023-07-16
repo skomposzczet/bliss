@@ -32,10 +32,10 @@ impl User<Authorized> {
 }
 
 impl User {
-    pub fn new(username: &str, url: Url) -> Self {
+    pub fn new(username: &str, url: &Url) -> Self {
         User {
             username: username.into(),
-            instance: url,
+            instance: url.clone(),
             jwtoken: None,
             state: PhantomData,
         }
