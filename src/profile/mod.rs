@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use lemmy_api_common::{site::GetSiteResponse, lemmy_db_schema::{SortType, ListingType, newtypes::LanguageId}};
+use lemmy_api_common::{site::GetSiteResponse, lemmy_db_schema::{SortType, ListingType, newtypes::LanguageId}, person::SaveUserSettings, sensitive::Sensitive};
 use serde::{Serialize, Deserialize};
 
 use crate::user::User;
@@ -82,14 +82,14 @@ struct Settings {
     interface_language: String,
     email: Option<String>,
     matrix_user_id: Option<String>,
-    show_nfsw: bool,
+    show_nsfw: bool,
     show_scores: bool,
     show_avatars: bool,
     show_bot_accounts: bool,
     show_read_posts: bool,
     show_new_post_notifs: bool,
     open_links_in_new_tab: bool,
-    send_notification_to_email: bool,
+    send_notifications_to_email: bool,
     bot_account: bool,
     discussion_languages: Vec<LanguageId>,
 }
@@ -114,14 +114,14 @@ impl Settings {
             interface_language: local_user.interface_language,
             email: local_user.email,
             matrix_user_id: user.matrix_user_id,
-            show_nfsw: local_user.show_nsfw,
+            show_nsfw: local_user.show_nsfw,
             show_scores: local_user.show_scores,
             show_avatars: local_user.show_avatars,
             show_bot_accounts: local_user.show_bot_accounts,
             show_read_posts: local_user.show_read_posts,
             show_new_post_notifs: local_user.show_new_post_notifs,
             open_links_in_new_tab: local_user.open_links_in_new_tab,
-            send_notification_to_email: local_user.send_notifications_to_email,
+            send_notifications_to_email: local_user.send_notifications_to_email,
             bot_account: user.bot_account,
             discussion_languages: site.discussion_languages.clone(),
         }
@@ -147,5 +147,37 @@ impl Profile {
     pub fn sync(&mut self, other: Self) {
         self.meta = other.meta;
         self.meta.touch();
+    }
+}
+
+impl From<Profile> for SaveUserSettings {
+    fn from(profile: Profile) -> Self {
+        SaveUserSettings {
+            default_sort_type: Some(profile.settings.default_sort_type),
+            default_listing_type: Some(profile.settings.default_listing_type),
+            theme: Some(profile.settings.theme),
+            interface_language: Some(profile.settings.interface_language),
+            email: match profile.settings.email {
+                Some(email) => Some(Sensitive::new(email)),
+                None => None,
+            },
+            matrix_user_id: profile.settings.matrix_user_id,
+            show_nsfw: Some(profile.settings.show_nsfw),
+            show_scores: Some(profile.settings.show_scores),
+            show_avatars: Some(profile.settings.show_avatars),
+            show_bot_accounts: Some(profile.settings.show_bot_accounts),
+            show_read_posts: Some(profile.settings.show_read_posts),
+            show_new_post_notifs: Some(profile.settings.show_new_post_notifs),
+            open_links_in_new_tab: Some(profile.settings.open_links_in_new_tab),
+            send_notifications_to_email: Some(profile.settings.send_notifications_to_email),
+            bot_account: Some(profile.settings.bot_account),
+            discussion_languages: Some(profile.settings.discussion_languages),
+            bio: profile.info.bio,
+            display_name: profile.info.display_name,
+            avatar: profile.info.avatar,
+            banner: profile.info.banner,
+            generate_totp_2fa: None,
+            auth: Sensitive::from(""),
+        }
     }
 }
