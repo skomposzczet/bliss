@@ -36,11 +36,11 @@ impl Meta {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct Info {
-    communities_blocks: Vec<Community>,
-    communities_follows: Vec<Community>,
-    people_blocks: Vec<Person>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Info {
+    pub communities_blocks: Vec<Community>,
+    pub communities_follows: Vec<Community>,
+    pub people_blocks: Vec<Person>,
     bio: Option<String>,
     display_name: Option<String>,
     avatar: Option<String>,
@@ -131,7 +131,7 @@ impl Settings {
 #[derive(Serialize, Deserialize)]
 pub struct Profile {
     meta: Meta,
-    info: Info,
+    pub info: Info,
     settings: Settings,
 }
 

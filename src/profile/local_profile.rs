@@ -8,7 +8,7 @@ const PROFILE_FILENAME: &'static str = "profile.yml";
 
 pub struct LocalProfile {
     name: String,
-    profile: Profile,
+    pub profile: Profile,
 }
 
 impl LocalProfile {

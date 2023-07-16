@@ -1,7 +1,7 @@
 use lemmy_api_common::lemmy_db_schema::{newtypes::CommunityId, source::community};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Community {
     pub name: String,
     pub id: CommunityId,
