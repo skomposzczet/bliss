@@ -8,6 +8,7 @@ use self::{community::Community, person::Person};
 
 pub mod community;
 pub mod person;
+pub mod local_profile;
 
 #[derive(Serialize, Deserialize)]
 struct Meta {
@@ -26,6 +27,12 @@ impl<T> From<User<T>> for Meta {
             date_created: date,
             date_updated: date,
         }
+    }
+}
+
+impl Meta {
+    fn touch(&mut self) {
+        self.date_updated = Local::now();
     }
 }
 
@@ -71,5 +78,10 @@ impl Profile {
             meta: Meta::from(user),
             info: Info::new(site),
         }
+    }
+
+    pub fn sync(&mut self, other: Self) {
+        self.meta = other.meta;
+        self.meta.touch();
     }
 }
