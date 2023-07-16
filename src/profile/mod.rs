@@ -4,9 +4,10 @@ use serde::{Serialize, Deserialize};
 
 use crate::user::User;
 
-use self::community::Community;
+use self::{community::Community, person::Person};
 
 pub mod community;
+pub mod person;
 
 #[derive(Serialize, Deserialize)]
 struct Meta {
@@ -32,6 +33,7 @@ impl<T> From<User<T>> for Meta {
 struct Info {
     communities_blocks: Vec<Community>,
     communities_follows: Vec<Community>,
+    people_blocks: Vec<Person>,
 }
 
 impl Info {
@@ -44,10 +46,15 @@ impl Info {
             .iter()
             .map(|community| Community::new(&community.community))
             .collect();
+        let ppl_block: Vec<Person> = site.my_user.clone().unwrap().person_blocks
+            .iter()
+            .map(|person| Person::new(&person.target))
+            .collect();
 
         Info {
             communities_blocks: com_block,
             communities_follows: com_follow,
+            people_blocks: ppl_block,
         }
     }
 }
