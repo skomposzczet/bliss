@@ -1,6 +1,8 @@
 use crate::profile::Profile;
+use crate::profile::community::Community;
 use crate::user::{User, Authorized, NotAuthorized};
 use lemmy_api_common::community::{CommunityResponse, FollowCommunity, BlockCommunity, BlockCommunityResponse};
+use lemmy_api_common::lemmy_db_schema::{SearchType, SortType};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
 use reqwest::{Client, Error};
 use url::Url;
@@ -69,6 +71,24 @@ impl Api {
             .send()
             .await?;
         let result = response.json::<person::LoginResponse>().await?;
+        Ok(result)
+    }
+
+    pub async fn search_community(&self, user: &User<Authorized>, community: &Community) -> Result<site::SearchResponse, Error> {
+        let url = api_path(&user.instance, "search");
+        let params = site::Search {
+            q: community.name.clone(),
+            type_: Some(SearchType::Communities),
+            sort: Some(SortType::TopAll),
+            auth: Some(Sensitive::from(user.token())),
+            ..Default::default()
+        };
+        let response = self.client
+            .get(url)
+            .query(&params)
+            .send()
+            .await?;
+        let result = response.json::<site::SearchResponse>().await.unwrap();
         Ok(result)
     }
 
