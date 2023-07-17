@@ -1,9 +1,11 @@
 use crate::profile::Profile;
 use crate::user::{User, Authorized, NotAuthorized};
+use lemmy_api_common::community::{CommunityResponse, FollowCommunity, BlockCommunity, BlockCommunityResponse};
+use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
 use reqwest::{Client, Error};
 use url::Url;
 use lemmy_api_common::sensitive::Sensitive;
-use lemmy_api_common::person;
+use lemmy_api_common::person::{self, BlockPersonResponse, BlockPerson};
 use lemmy_api_common::site;
 
 const API_BASE: &'static str = "/api/v3"; 
@@ -46,7 +48,7 @@ impl Api {
     pub async fn site(&self, user: &User<Authorized>) -> Result<site::GetSiteResponse, Error> {
         let url = api_path(&user.instance, "site");
         let params = site::GetSite {
-            auth: Some(Sensitive::new(user.token().to_owned()))
+            auth: Some(Sensitive::from(user.token()))
         };
         let response = self.client
             .get(url)
@@ -60,7 +62,7 @@ impl Api {
     pub async fn save_user_settings(&self, user: &User<Authorized>, profile: Profile) -> Result<person::LoginResponse, Error> {
         let url = api_path(&user.instance, "user/save_user_settings");
         let mut settings = person::SaveUserSettings::from(profile);
-        settings.auth = Sensitive::new(user.token().to_owned());
+        settings.auth = Sensitive::from(user.token());
         let response = self.client
             .put(url)
             .json(&settings)
@@ -70,4 +72,51 @@ impl Api {
         Ok(result)
     }
 
+    pub async fn follow_community(&self, user: &User<Authorized>, id: &CommunityId) -> Result<CommunityResponse, Error> {
+        let url = api_path(&user.instance, "community/follow");
+        let params = FollowCommunity {
+            community_id: id.clone(),
+            follow: true,
+            auth: Sensitive::from(user.token()),
+        };
+        let response = self.client
+            .post(url)
+            .json(&params)
+            .send()
+            .await?;
+        let result = response.json::<CommunityResponse>().await?;
+        Ok(result)
+    }
+
+    pub async fn block_community(&self, user: &User<Authorized>, id: &CommunityId) -> Result<BlockCommunityResponse, Error> {
+        let url = api_path(&user.instance, "community/block");
+        let params = BlockCommunity {
+            community_id: id.clone(),
+            block: true,
+            auth: Sensitive::from(user.token()),
+        };
+        let response = self.client
+            .post(url)
+            .json(&params)
+            .send()
+            .await?;
+        let result = response.json::<BlockCommunityResponse>().await?;
+        Ok(result)
+    }
+
+    pub async fn block_person(&self, user: &User<Authorized>, id: &PersonId) -> Result<BlockPersonResponse, Error> {
+        let url = api_path(&user.instance, "user/block");
+        let params = BlockPerson {
+            person_id: id.clone(),
+            block: true,
+            auth: Sensitive::from(user.token()),
+        };
+        let response = self.client
+            .post(url)
+            .json(&params)
+            .send()
+            .await?;
+        let result = response.json::<BlockPersonResponse>().await?;
+        Ok(result)
+    }
 }
