@@ -11,6 +11,8 @@ use clap::{Parser, Subcommand};
 use url::Url;
 use user::User;
 
+use crate::bliss::push;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -26,6 +28,17 @@ enum Commands {
         username: String,
 
         #[arg(short, long, help="Source instance")]
+        instance: Url,
+
+        #[arg(short, long, help="Local profile name")]
+        profile_name: String,
+    },
+    /// Push account settings from local profile
+    Push {
+        #[arg(short, long, help="Destination username or email")]
+        username: String,
+
+        #[arg(short, long, help="Destination instance")]
         instance: Url,
 
         #[arg(short, long, help="Local profile name")]
@@ -56,6 +69,13 @@ fn get_password(origin: Origin) -> String {
     }
 }
 
+fn instance_host(instance: &Url) -> String {
+    instance
+        .host_str()
+        .unwrap_or(instance.as_str())
+        .to_string()
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
@@ -65,12 +85,16 @@ async fn main() -> Result<(), Error> {
             let pw = get_password(Origin::Source);
             let user = User::new(username, instance);
             pull(user, pw, profile_name).await?;
-            let instance_name = instance
-                .host_str()
-                .unwrap_or(instance.as_str());
             println!("Successfully pulled acount {}@{} to local profile '{}'.",
-                    username, instance_name, profile_name);
+                    username, instance_host(&instance), profile_name);
         },
+        Some(Commands::Push { username, instance, profile_name }) => {
+            let pw = get_password(Origin::Destination);
+            let user = User::new(username, instance);
+            push(user, pw, profile_name).await?;
+            println!("Successfully pushed to acount {}@{} from local profile '{}'.",
+                    username, instance_host(&instance), profile_name);
+        }
         None => {}
     }
     Ok(())
