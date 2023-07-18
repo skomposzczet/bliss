@@ -1,4 +1,6 @@
-#![allow(dead_code)]
+extern crate pretty_logger;
+#[macro_use] extern crate log;
+use log::LogLevelFilter;
 
 mod user;
 mod api;
@@ -78,6 +80,7 @@ fn instance_host(instance: &Url) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    pretty_logger::init_level(LogLevelFilter::Info).unwrap();
     let cli = Cli::parse();
 
     match &cli.command {
@@ -85,14 +88,14 @@ async fn main() -> Result<(), Error> {
             let pw = get_password(Origin::Source);
             let user = User::new(username, instance);
             pull(user, pw, profile_name).await?;
-            println!("Successfully pulled acount {}@{} to local profile '{}'.",
+            info!("Successfully pulled account {}@{} to local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         },
         Some(Commands::Push { username, instance, profile_name }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
             push(user, pw, profile_name).await?;
-            println!("Successfully pushed to acount {}@{} from local profile '{}'.",
+            info!("Successfully pushed to account {}@{} from local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         }
         None => {}

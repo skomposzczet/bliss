@@ -37,11 +37,11 @@ pub async fn push(user: User, password: String, profile_name: &str) -> Result<()
         .map_err(|err| Error::IoError(err))?
         .profile;
     let info = profile.info.clone();
-    println!("Uploading settings...");
+    info!("Uploading settings...");
     api.save_user_settings(&user, profile)
         .await
         .map_err(|err| Error::ReqwestError(err))?;
-    println!("Successfully uploaded settings.");
+    info!("Successfully uploaded settings.");
 
     let rate_limit = api.site(&user).await
         .map_err(|err| Error::ReqwestError(err))?
@@ -69,8 +69,8 @@ pub async fn push(user: User, password: String, profile_name: &str) -> Result<()
 
 fn log_result<T>(result: Result<T, Error>) {
     match result {
-        Ok(_) => println!("Success"),
-        Err(err) => println!("Failed: {}", err),
+        Ok(_) => info!("Success"),
+        Err(err) => error!("Failed: {}", err),
     }
 }
 
@@ -114,7 +114,7 @@ async fn find_person(api: &Api, user: &User<Authorized>, person: &Person) -> Res
 
 
 async fn follow_community(api: &Api, user: &User<Authorized>, community: &Community) -> Result<(), Error> {
-    println!("Following {}...", community.name);
+    info!("Following {}...", community.name);
     let community_id = find_community(&api, &user, &community)
         .await?;
     api.follow_community(&user, &community_id)
@@ -123,7 +123,7 @@ async fn follow_community(api: &Api, user: &User<Authorized>, community: &Commun
 }
 
 async fn block_community(api: &Api, user: &User<Authorized>, community: &Community) -> Result<(), Error> {
-    println!("Blocking {}...", community.name);
+    info!("Blocking {}...", community.name);
     let community_id = find_community(&api, &user, community)
         .await?;
     api.block_community(&user, &community_id)
@@ -132,7 +132,7 @@ async fn block_community(api: &Api, user: &User<Authorized>, community: &Communi
 }
 
 async fn block_person(api: &Api, user: &User<Authorized>, person: &Person) -> Result<(), Error> {
-    println!("Blocking {}...", person.username);
+    info!("Blocking {}...", person.username);
     let person_id = find_person(&api, &user, person)
         .await?;
     api.block_person(&user, &person_id)
