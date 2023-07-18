@@ -1,6 +1,6 @@
 use std::{time::Duration, thread};
 
-use lemmy_api_common::lemmy_db_schema::newtypes::CommunityId;
+use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
 
 use crate::{api::Api, user::{User, Authorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person}};
 
@@ -93,6 +93,26 @@ async fn find_community(api: &Api, user: &User<Authorized>, community: &Communit
     community_id
 }
 
+async fn find_person(api: &Api, user: &User<Authorized>, person: &Person) -> Result<PersonId, Error> {
+    let response = api.search_person(&user, &person).await
+        .map_err(|err| Error::ReqwestError(err))?;
+    let person_id: Option<PersonId> = {
+        let found: Vec<_> = response.users
+            .iter()
+            .filter_map(|pers| if person.is_same(pers) { Some(pers.person.id) } else { None })
+            .collect();
+        if found.len() == 1 {
+            Some(found[0])
+        } else {
+            None
+        }
+    };
+    let person_id = person_id
+        .ok_or(Error::BlissError(format!("Unable to find user: {}", person.actor)));
+    person_id
+}
+
+
 async fn follow_community(api: &Api, user: &User<Authorized>, community: &Community) -> Result<(), Error> {
     println!("Following {}...", community.name);
     let community_id = find_community(&api, &user, &community)
@@ -104,7 +124,7 @@ async fn follow_community(api: &Api, user: &User<Authorized>, community: &Commun
 
 async fn block_community(api: &Api, user: &User<Authorized>, community: &Community) -> Result<(), Error> {
     println!("Blocking {}...", community.name);
-    let community_id = find_community(&api, &user, &community)
+    let community_id = find_community(&api, &user, community)
         .await?;
     api.block_community(&user, &community_id)
         .await?;
@@ -113,7 +133,9 @@ async fn block_community(api: &Api, user: &User<Authorized>, community: &Communi
 
 async fn block_person(api: &Api, user: &User<Authorized>, person: &Person) -> Result<(), Error> {
     println!("Blocking {}...", person.username);
-    api.block_person(&user, &person.id)
+    let person_id = find_person(&api, &user, person)
+        .await?;
+    api.block_person(&user, &person_id)
         .await?;
     Ok(())
 }
