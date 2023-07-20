@@ -10,7 +10,7 @@ pub mod community;
 pub mod person;
 pub mod local_profile;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Meta {
     username: String,
     instance: url::Url,
@@ -74,7 +74,7 @@ impl Info {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Settings {
     default_sort_type: SortType,
     default_listing_type: ListingType,
@@ -128,7 +128,7 @@ impl Settings {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
     meta: Meta,
     pub info: Info,

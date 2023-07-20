@@ -2,7 +2,7 @@ use std::{time::Duration, thread};
 
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
 
-use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person}};
+use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -55,19 +55,33 @@ impl Bliss {
         let profile = LocalProfile::load(&self.profile_name)
             .map_err(|err| Error::IoError(err))?
             .profile;
-        let info = profile.info.clone();
+        self.push_settings(profile.clone()).await?;
+        self.push_info(&profile.info).await?;
+        Ok(())
+    }
+
+    pub async fn push_settings(&self, profile: Profile) -> Result<(), Error> {
         info!("Uploading settings...");
         self.api.save_user_settings(&self.user, profile)
             .await
             .map_err(|err| Error::ReqwestError(err))?;
         info!("Successfully uploaded settings.");
+        Ok(())
+    }
 
+    pub async fn push_info(&self, info: &Info) -> Result<(), Error> {
         let rate_limit = self.api.site(&self.user).await
             .map_err(|err| Error::ReqwestError(err))?
             .site_view
             .local_site_rate_limit
             .message_per_second;
         let sleep_time = Duration::from_millis((1000 as f64 / rate_limit as f64).ceil() as u64);
+        self.push_communities(info, sleep_time).await;
+        self.push_users(info, sleep_time).await;
+        Ok(())
+    }
+
+    pub async fn push_communities(&self, info: &Info, sleep_time: Duration) {
         for community in info.communities_follows.iter() {
             let result = self.follow_community(&community).await;
             log_result(result);
@@ -78,12 +92,14 @@ impl Bliss {
             log_result(result);
             thread::sleep(sleep_time);
         }
+    }
+
+    pub async fn push_users(&self, info: &Info, sleep_time: Duration) {
         for person in info.people_blocks.iter() {
             let result = self.block_person(&person).await;
             log_result(result);
             thread::sleep(sleep_time);
         }
-        Ok(())
     }
 
     async fn follow_community(&self, community: &Community) -> Result<(), Error> {
