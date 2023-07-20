@@ -8,12 +8,10 @@ mod profile;
 mod bliss;
 
 use std::io::Write;
-use bliss::{pull, Error};
+use bliss::{Bliss, Error};
 use clap::{Parser, Subcommand};
 use url::Url;
 use user::User;
-
-use crate::bliss::push;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -87,14 +85,16 @@ async fn main() -> Result<(), Error> {
         Some(Commands::Pull { username, instance, profile_name }) => {
             let pw = get_password(Origin::Source);
             let user = User::new(username, instance);
-            pull(user, pw, profile_name).await?;
+            let bliss = Bliss::new(user, pw, profile_name).await?;
+            bliss.pull().await?;
             info!("Successfully pulled account {}@{} to local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         },
         Some(Commands::Push { username, instance, profile_name }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
-            push(user, pw, profile_name).await?;
+            let bliss = Bliss::new(user, pw, profile_name).await?;
+            bliss.push().await?;
             info!("Successfully pushed to account {}@{} from local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         }

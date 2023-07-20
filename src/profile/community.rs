@@ -1,7 +1,7 @@
 use lemmy_api_common::{lemmy_db_schema::{newtypes::DbUrl, source::community}, lemmy_db_views_actor::structs::CommunityView};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Community {
     pub name: String,
     pub actor: DbUrl,
