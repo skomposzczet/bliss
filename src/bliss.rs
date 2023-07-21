@@ -70,32 +70,46 @@ impl Bliss {
     }
 
     pub async fn push_info(&self, info: &Info) -> Result<(), Error> {
-        let rate_limit = self.api.site(&self.user).await
-            .map_err(|err| Error::ReqwestError(err))?
+        let site = self.api.site(&self.user).await
+            .map_err(|err| Error::ReqwestError(err))?;
+        let dst_profile = Profile::new(self.user.clone(), &site);
+        let rate_limit = site
             .site_view
             .local_site_rate_limit
             .message_per_second;
         let sleep_time = Duration::from_millis((1000 as f64 / rate_limit as f64).ceil() as u64);
-        self.push_communities(info, sleep_time).await;
-        self.push_users(info, sleep_time).await;
+        self.push_communities(info, &dst_profile.info, sleep_time).await;
+        self.push_users(info, &dst_profile.info, sleep_time).await;
         Ok(())
     }
 
-    pub async fn push_communities(&self, info: &Info, sleep_time: Duration) {
-        for community in info.communities_follows.iter() {
+    pub async fn push_communities(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
+        let iterator = info
+            .communities_follows
+            .iter()
+            .filter(|c| !dst_info.communities_follows.contains(c));
+        for community in iterator {
             let result = self.follow_community(&community).await;
             log_result(result);
             thread::sleep(sleep_time);
         }
-        for community in info.communities_blocks.iter() {
+        let iterator = info
+            .communities_blocks
+            .iter()
+            .filter(|c| !dst_info.communities_blocks.contains(c));
+        for community in iterator {
             let result = self.block_community(&community).await;
             log_result(result);
             thread::sleep(sleep_time);
         }
     }
 
-    pub async fn push_users(&self, info: &Info, sleep_time: Duration) {
-        for person in info.people_blocks.iter() {
+    pub async fn push_users(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
+        let iterator = info
+            .people_blocks
+            .iter()
+            .filter(|p| !dst_info.people_blocks.contains(p));
+        for person in iterator {
             let result = self.block_person(&person).await;
             log_result(result);
             thread::sleep(sleep_time);

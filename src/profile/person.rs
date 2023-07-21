@@ -1,7 +1,7 @@
 use lemmy_api_common::{lemmy_db_schema::{newtypes::DbUrl, source::person}, lemmy_db_views_actor::structs::PersonView};
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Person {
     pub username: String,
     pub actor: DbUrl,
