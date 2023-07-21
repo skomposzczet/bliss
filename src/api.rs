@@ -112,11 +112,11 @@ impl Api {
     }
 
 
-    pub async fn follow_community(&self, user: &User<Authorized>, id: &CommunityId) -> Result<CommunityResponse, Error> {
+    pub async fn follow_community(&self, user: &User<Authorized>, id: &CommunityId, follow: bool) -> Result<CommunityResponse, Error> {
         let url = api_path(&user.instance, "community/follow");
         let params = FollowCommunity {
             community_id: id.clone(),
-            follow: true,
+            follow,
             auth: Sensitive::from(user.token()),
         };
         let response = self.client
@@ -128,11 +128,11 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn block_community(&self, user: &User<Authorized>, id: &CommunityId) -> Result<BlockCommunityResponse, Error> {
+    pub async fn block_community(&self, user: &User<Authorized>, id: &CommunityId, block: bool) -> Result<BlockCommunityResponse, Error> {
         let url = api_path(&user.instance, "community/block");
         let params = BlockCommunity {
             community_id: id.clone(),
-            block: true,
+            block,
             auth: Sensitive::from(user.token()),
         };
         let response = self.client
@@ -144,11 +144,11 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn block_person(&self, user: &User<Authorized>, id: &PersonId) -> Result<BlockPersonResponse, Error> {
+    pub async fn block_person(&self, user: &User<Authorized>, id: &PersonId, block: bool) -> Result<BlockPersonResponse, Error> {
         let url = api_path(&user.instance, "user/block");
         let params = BlockPerson {
             person_id: id.clone(),
-            block: true,
+            block,
             auth: Sensitive::from(user.token()),
         };
         let response = self.client
