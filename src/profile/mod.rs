@@ -72,6 +72,33 @@ impl Info {
             banner: None,
         }
     }
+
+    pub fn subtract(&self, other: &Self) -> Self {
+        let com_block = self.communities_blocks
+            .clone()
+            .into_iter()
+            .filter(|c| !other.communities_blocks.contains(c))
+            .collect();
+        let com_follow = self.communities_follows
+            .clone()
+            .into_iter()
+            .filter(|c| !other.communities_follows.contains(c))
+            .collect();
+        let ppl_block = self.people_blocks
+            .clone()
+            .into_iter()
+            .filter(|p| !other.people_blocks.contains(p))
+            .collect();
+        Info {
+            communities_blocks: com_block,
+            communities_follows: com_follow,
+            people_blocks: ppl_block,
+            bio: self.bio.clone(),
+            display_name: self.display_name.clone(),
+            avatar: None,
+            banner: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
