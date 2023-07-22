@@ -1,5 +1,6 @@
 use std::{time::Duration, thread, cell::Cell};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
+use url::Url;
 use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}};
 
 #[derive(thiserror::Error, Debug)]
@@ -10,6 +11,13 @@ pub enum Error {
     IoError( #[from] std::io::Error ),
     #[error("Error: {0}")]
     BlissError(String),
+}
+
+fn instance_host(instance: &Url) -> String {
+    instance
+        .host_str()
+        .unwrap_or(instance.as_str())
+        .to_string()
 }
 
 macro_rules! log_res {
@@ -33,7 +41,7 @@ impl Bliss {
         let api = Api::new();
         let user = api.login(user, password)
             .await
-            .map_err(|err| Error::ReqwestError(err))?;
+            .map_err(|err| Error::BlissError(format!("Failed while trying to login: {}", err)))?;
         let bliss = Bliss {
             user,
             api,
@@ -44,16 +52,21 @@ impl Bliss {
     }
 
     pub async fn pull(&self) -> Result<(), Error> {
+        info!("Pulling {}@{} to local profile {}.",
+                self.user.username, instance_host(&self.user.instance), self.profile_name);
         let site = self.api.site(&self.user)
             .await
             .map_err(|err| Error::ReqwestError(err))?;
         let profile = Profile::new(self.user.clone(), &site);
         let mut lp = LocalProfile::new(&self.profile_name, profile);
         lp.save().map_err(|err| Error::IoError(err))?;
+        info!("Pulled successfully.");
         Ok(())
     }
 
     pub async fn push(&self, subtractive: bool, ignore: &[String]) -> Result<(), Error> {
+        info!("Pushing {}@{} from local profile {}",
+            self.user.username, instance_host(&self.user.instance), self.profile_name);
         self.subtractive.set(subtractive);
         let profile = LocalProfile::load(&self.profile_name)
             .map_err(|err| Error::IoError(err))?
@@ -61,10 +74,11 @@ impl Bliss {
             .ignore_parameters(ignore);
         self.push_settings(profile.clone()).await?;
         self.push_info(&profile.info).await?;
+        info!("Pushed successfully.");
         Ok(())
     }
 
-    pub async fn push_settings(&self, profile: Profile) -> Result<(), Error> {
+    async fn push_settings(&self, profile: Profile) -> Result<(), Error> {
         info!("Uploading settings...");
         self.api.save_user_settings(&self.user, profile)
             .await
@@ -73,7 +87,7 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push_info(&self, info: &Info) -> Result<(), Error> {
+    async fn push_info(&self, info: &Info) -> Result<(), Error> {
         let site = self.api.site(&self.user).await
             .map_err(|err| Error::ReqwestError(err))?;
         let dst_profile = Profile::new(self.user.clone(), &site);
@@ -92,7 +106,7 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push_communities(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
+    async fn push_communities(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
         let iterator = info
             .communities_follows
             .iter()
@@ -111,7 +125,7 @@ impl Bliss {
         }
     }
 
-    pub async fn push_users(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
+    async fn push_users(&self, info: &Info, dst_info: &Info, sleep_time: Duration) {
         let iterator = info
             .people_blocks
             .iter()

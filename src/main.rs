@@ -75,13 +75,6 @@ fn get_password(origin: Origin) -> String {
     }
 }
 
-fn instance_host(instance: &Url) -> String {
-    instance
-        .host_str()
-        .unwrap_or(instance.as_str())
-        .to_string()
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     pretty_logger::init_level(LogLevelFilter::Info).unwrap();
@@ -93,16 +86,12 @@ async fn main() -> Result<(), Error> {
             let user = User::new(username, instance);
             let bliss = Bliss::new(user, pw, profile_name).await?;
             bliss.pull().await?;
-            info!("Successfully pulled account {}@{} to local profile '{}'.",
-                    username, instance_host(&instance), profile_name);
         },
         Some(Commands::Push { username, instance, profile_name, subtractive, wno }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
             let bliss = Bliss::new(user, pw, profile_name).await?;
             bliss.push(*subtractive, wno).await?;
-            info!("Successfully pushed to account {}@{} from local profile '{}'.",
-                    username, instance_host(&instance), profile_name);
         },
         None => {}
     }
