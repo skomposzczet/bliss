@@ -1,33 +1,10 @@
+pub mod error;
+pub mod util;
+
 use std::{time::Duration, thread, cell::Cell};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
-use url::Url;
-use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}};
-
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    ReqwestError( #[from] reqwest::Error ),
-    #[error(transparent)]
-    IoError( #[from] std::io::Error ),
-    #[error("Error: {0}")]
-    BlissError(String),
-}
-
-fn instance_host(instance: &Url) -> String {
-    instance
-        .host_str()
-        .unwrap_or(instance.as_str())
-        .to_string()
-}
-
-macro_rules! log_res {
-    ( $e:expr ) => {
-        match $e {
-            Ok(_) => info!("Success"),
-            Err(err) => warn!("Failed: {}", err),
-        }
-    }
-}
+use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}, bliss::util::instance_host, log_res};
+use self::error::Error;
 
 pub struct Bliss {
     user: User<Authorized>,

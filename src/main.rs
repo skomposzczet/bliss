@@ -7,8 +7,7 @@ mod api;
 mod profile;
 mod bliss;
 
-use std::io::Write;
-use bliss::{Bliss, Error};
+use bliss::{Bliss, error::Error, util::{get_password, Origin}};
 use clap::{Parser, Subcommand};
 use url::Url;
 use user::User;
@@ -52,34 +51,16 @@ enum Commands {
     },
 }
 
-
-enum Origin {
-    Source,
-    Destination,
-}
-
-fn get_password(origin: Origin) -> String {
-    let key = match origin {
-        Origin::Source => "LEMMY_SRC_PW",
-        Origin::Destination => "LEMMY_DST_PW",
-    };
-
-    match std::env::var(key) {
-        Ok(pw) => pw,
-        Err(_) => {
-            print!("Password({}): ", key);
-            std::io::stdout().flush().unwrap();
-            let pw = rpassword::read_password().unwrap();
-            pw
-        }
+#[tokio::main]
+async fn main() {
+    pretty_logger::init_level(LogLevelFilter::Info).unwrap();
+    let cli = Cli::parse();
+    if let Err(err) = exec_command(&cli).await {
+        error!("{}", err);
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    pretty_logger::init_level(LogLevelFilter::Info).unwrap();
-    let cli = Cli::parse();
-
+async fn exec_command(cli: &Cli) -> Result<(), Error> {
     match &cli.command {
         Some(Commands::Pull { username, instance, profile_name }) => {
             let pw = get_password(Origin::Source);
@@ -95,5 +76,5 @@ async fn main() -> Result<(), Error> {
         },
         None => {}
     }
-    Ok(())
+    Ok(()) 
 }
