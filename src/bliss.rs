@@ -1,4 +1,4 @@
-use std::{time::Duration, thread};
+use std::{time::Duration, thread, cell::Cell};
 
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
 
@@ -25,6 +25,7 @@ pub struct Bliss {
     user: User<Authorized>,
     api: Api,
     profile_name: String,
+    subtractive: Cell<bool>,
 }
 
 impl Bliss {
@@ -37,6 +38,7 @@ impl Bliss {
             user,
             api,
             profile_name: profile_name.to_owned(),
+            subtractive: Cell::new(false),
         };
         Ok(bliss)
     }
@@ -51,7 +53,8 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push(&self) -> Result<(), Error> {
+    pub async fn push(&self, subtractive: bool) -> Result<(), Error> {
+        self.subtractive.set(subtractive);
         let profile = LocalProfile::load(&self.profile_name)
             .map_err(|err| Error::IoError(err))?
             .profile;
@@ -73,13 +76,18 @@ impl Bliss {
         let site = self.api.site(&self.user).await
             .map_err(|err| Error::ReqwestError(err))?;
         let dst_profile = Profile::new(self.user.clone(), &site);
+        let dst_info = dst_profile.info;
         let rate_limit = site
             .site_view
             .local_site_rate_limit
             .message_per_second;
         let sleep_time = Duration::from_millis((1000 as f64 / rate_limit as f64).ceil() as u64);
-        self.push_communities(info, &dst_profile.info, sleep_time).await;
-        self.push_users(info, &dst_profile.info, sleep_time).await;
+        self.push_communities(info, &dst_info, sleep_time).await;
+        self.push_users(info, &dst_info, sleep_time).await;
+        if self.subtractive.get() {
+            let undo_info = dst_info.subtract(info);
+            self.subtractive_push_info(&undo_info, sleep_time).await;
+        }
         Ok(())
     }
 
@@ -116,11 +124,36 @@ impl Bliss {
         }
     }
 
+    async fn subtractive_push_info(&self, undo_info: &Info, sleep_time: Duration) {
+        for community in undo_info.communities_follows.iter() {
+            let result = self.unfollow_community(&community).await;
+            log_result(result);
+            thread::sleep(sleep_time);
+        }
+        for community in undo_info.communities_blocks.iter() {
+            let result = self.unblock_community(&community).await;
+            log_result(result);
+            thread::sleep(sleep_time);
+        }
+        for user in undo_info.people_blocks.iter() {
+            let result = self.unblock_person(&user).await;
+            log_result(result);
+            thread::sleep(sleep_time);
+        }
+    }
+
     async fn follow_community(&self, community: &Community) -> Result<(), Error> {
         info!("Following {}...", community.name);
         let community_id = self.find_community(&community)
             .await?;
-        self.api.follow_community(&self.user, &community_id)
+        self.api.follow_community(&self.user, &community_id, true)
+            .await?;
+        Ok(())
+    }
+
+    async fn unfollow_community(&self, community: &Community) -> Result<(), Error> {
+        info!("Unfollowing {}...", community.name);
+        self.api.follow_community(&self.user, &community.id, false)
             .await?;
         Ok(())
     }
@@ -129,7 +162,14 @@ impl Bliss {
         info!("Blocking {}...", community.name);
         let community_id = self.find_community(community)
             .await?;
-        self.api.block_community(&self.user, &community_id)
+        self.api.block_community(&self.user, &community_id, true)
+            .await?;
+        Ok(())
+    }
+
+    async fn unblock_community(&self, community: &Community) -> Result<(), Error> {
+        info!("Unblocking {}...", community.name);
+        self.api.block_community(&self.user, &community.id, false)
             .await?;
         Ok(())
     }
@@ -138,7 +178,16 @@ impl Bliss {
         info!("Blocking {}...", person.username);
         let person_id = self.find_person(person)
             .await?;
-        self.api.block_person(&self.user, &person_id)
+        self.api.block_person(&self.user, &person_id, true)
+            .await?;
+        Ok(())
+    }
+
+    async fn unblock_person(&self, person: &Person) -> Result<(), Error> {
+        info!("Unblocking {}...", person.username);
+        let person_id = self.find_person(person)
+            .await?;
+        self.api.block_person(&self.user, &person_id, false)
             .await?;
         Ok(())
     }
@@ -181,5 +230,4 @@ impl Bliss {
         person_id
     }
 }
-
 

@@ -43,6 +43,9 @@ enum Commands {
 
         #[arg(short, long, help="Local profile name")]
         profile_name: String,
+
+        #[arg(short, long, help="Unfollows and unblocks communities and users if not followed or blocked in local profile")]
+        subtractive: bool,
     },
 }
 
@@ -90,11 +93,11 @@ async fn main() -> Result<(), Error> {
             info!("Successfully pulled account {}@{} to local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         },
-        Some(Commands::Push { username, instance, profile_name }) => {
+        Some(Commands::Push { username, instance, profile_name, subtractive }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
             let bliss = Bliss::new(user, pw, profile_name).await?;
-            bliss.push().await?;
+            bliss.push(*subtractive).await?;
             info!("Successfully pushed to account {}@{} from local profile '{}'.",
                     username, instance_host(&instance), profile_name);
         }
