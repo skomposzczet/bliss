@@ -1,7 +1,5 @@
 use std::{time::Duration, thread, cell::Cell};
-
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
-
 use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}};
 
 #[derive(thiserror::Error, Debug)]
@@ -14,10 +12,12 @@ pub enum Error {
     BlissError(String),
 }
 
-fn log_result<T>(result: Result<T, Error>) {
-    match result {
-        Ok(_) => info!("Success"),
-        Err(err) => error!("Failed: {}", err),
+macro_rules! log_res {
+    ( $e:expr ) => {
+        match $e {
+            Ok(_) => info!("Success"),
+            Err(err) => warn!("Failed: {}", err),
+        }
     }
 }
 
@@ -97,8 +97,7 @@ impl Bliss {
             .iter()
             .filter(|c| !dst_info.communities_follows.contains(c));
         for community in iterator {
-            let result = self.follow_community(&community).await;
-            log_result(result);
+            log_res!(self.follow_community(&community).await);
             thread::sleep(sleep_time);
         }
         let iterator = info
@@ -106,8 +105,7 @@ impl Bliss {
             .iter()
             .filter(|c| !dst_info.communities_blocks.contains(c));
         for community in iterator {
-            let result = self.block_community(&community).await;
-            log_result(result);
+            log_res!(self.block_community(&community).await);
             thread::sleep(sleep_time);
         }
     }
@@ -118,26 +116,22 @@ impl Bliss {
             .iter()
             .filter(|p| !dst_info.people_blocks.contains(p));
         for person in iterator {
-            let result = self.block_person(&person).await;
-            log_result(result);
+            log_res!(self.block_person(&person).await);
             thread::sleep(sleep_time);
         }
     }
 
     async fn subtractive_push_info(&self, undo_info: &Info, sleep_time: Duration) {
         for community in undo_info.communities_follows.iter() {
-            let result = self.unfollow_community(&community).await;
-            log_result(result);
+            log_res!(self.unfollow_community(&community).await);
             thread::sleep(sleep_time);
         }
         for community in undo_info.communities_blocks.iter() {
-            let result = self.unblock_community(&community).await;
-            log_result(result);
+            log_res!(self.unblock_community(&community).await);
             thread::sleep(sleep_time);
         }
         for user in undo_info.people_blocks.iter() {
-            let result = self.unblock_person(&user).await;
-            log_result(result);
+            log_res!(self.unblock_person(&user).await);
             thread::sleep(sleep_time);
         }
     }
