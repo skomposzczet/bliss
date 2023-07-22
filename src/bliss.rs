@@ -53,11 +53,12 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push(&self, subtractive: bool) -> Result<(), Error> {
+    pub async fn push(&self, subtractive: bool, ignore: &[String]) -> Result<(), Error> {
         self.subtractive.set(subtractive);
         let profile = LocalProfile::load(&self.profile_name)
             .map_err(|err| Error::IoError(err))?
-            .profile;
+            .profile
+            .ignore_parameters(ignore);
         self.push_settings(profile.clone()).await?;
         self.push_info(&profile.info).await?;
         Ok(())
