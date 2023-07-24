@@ -28,12 +28,12 @@ impl Api {
             client: Client::new(),
         }
     }
-    pub async fn login(&self, user: User<NotAuthorized>, password: String) -> Result<User<Authorized>, Error> {
+    pub async fn login(&self, user: User<NotAuthorized>, password: String, token: Option<String>) -> Result<User<Authorized>, Error> {
         let url = api_path(&user.instance, "user/login");
         let params = person::Login {
             username_or_email: Sensitive::new(user.username.clone()),
             password: Sensitive::new(password),
-            ..Default::default()
+            totp_2fa_token: token,
         };
         let response = self.client
             .post(url)

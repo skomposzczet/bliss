@@ -14,9 +14,9 @@ pub struct Bliss {
 }
 
 impl Bliss {
-    pub async fn new(user: User<NotAuthorized>, password: String, profile_name: &str) -> Result<Bliss, Error> {
+    pub async fn new(user: User<NotAuthorized>, password: String, token: Option<String>, profile_name: &str) -> Result<Bliss, Error> {
         let api = Api::new();
-        let user = api.login(user, password)
+        let user = api.login(user, password, token)
             .await
             .map_err(|err| Error::BlissError(format!("Failed while trying to login: {}", err)))?;
         let bliss = Bliss {

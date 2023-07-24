@@ -29,6 +29,9 @@ enum Commands {
         #[arg(short, long, help="Source instance")]
         instance: Url,
 
+        #[arg(short, long, help="2FA token for source account")]
+        token: Option<String>,
+
         #[arg(short, long, help="Local profile name")]
         profile_name: String,
     },
@@ -39,6 +42,9 @@ enum Commands {
 
         #[arg(short, long, help="Destination instance")]
         instance: Url,
+
+        #[arg(short, long, help="2FA token for destination account")]
+        token: Option<String>,
 
         #[arg(short, long, help="Local profile name")]
         profile_name: String,
@@ -62,16 +68,16 @@ async fn main() {
 
 async fn exec_command(cli: &Cli) -> Result<(), Error> {
     match &cli.command {
-        Some(Commands::Pull { username, instance, profile_name }) => {
+        Some(Commands::Pull { username, instance, token, profile_name }) => {
             let pw = get_password(Origin::Source);
             let user = User::new(username, instance);
-            let bliss = Bliss::new(user, pw, profile_name).await?;
+            let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
             bliss.pull().await?;
         },
-        Some(Commands::Push { username, instance, profile_name, subtractive, wno }) => {
+        Some(Commands::Push { username, instance, token, profile_name, subtractive, wno }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
-            let bliss = Bliss::new(user, pw, profile_name).await?;
+            let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
             bliss.push(*subtractive, wno).await?;
         },
         None => {}
