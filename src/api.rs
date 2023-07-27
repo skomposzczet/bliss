@@ -4,7 +4,7 @@ use crate::profile::person::Person;
 use crate::user::{User, Authorized, NotAuthorized};
 use lemmy_api_common::community::{CommunityResponse, FollowCommunity, BlockCommunity, BlockCommunityResponse};
 use lemmy_api_common::lemmy_db_schema::{SearchType, SortType};
-use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
+use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId, DbUrl};
 use reqwest::{Client, Error};
 use url::Url;
 use lemmy_api_common::sensitive::Sensitive;
@@ -158,5 +158,23 @@ impl Api {
             .await?;
         let result = response.json::<BlockPersonResponse>().await?;
         Ok(result)
+    }
+
+    pub async fn get_image(&self, url: &Option<DbUrl>) -> Result<Option<bytes::Bytes>, Error> {
+        if url.is_none() {
+            return Ok(None);
+        }
+        let url = url
+            .as_ref()
+            .unwrap()
+            .inner()
+            .to_owned();
+        let bytes = self.client
+            .get(url)
+            .send()
+            .await?
+            .bytes()
+            .await?;
+        Ok(Some(bytes))
     }
 }
