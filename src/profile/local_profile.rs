@@ -1,13 +1,16 @@
-use std::{path::PathBuf, io::{Error, Write, ErrorKind}, fs::{create_dir_all, File, self}};
-
+use std::{path::{PathBuf, Path}, io::{Error, Write, ErrorKind}, fs::{create_dir_all, File, self}};
 use super::Profile;
+use bytes::Bytes;
 use home::home_dir;
+
 
 const PROFILE_PATH_RELATIVE: &'static str = ".bliss/profiles/";
 const PROFILE_FILENAME: &'static str = "profile.yml";
+const AVATAR_FILENAME: &'static str = "avatar.png";
+const BANNER_FILENAME: &'static str = "banner.png";
 
 pub struct LocalProfile {
-    name: String,
+    pub name: String,
     pub profile: Profile,
 }
 
@@ -17,6 +20,27 @@ impl LocalProfile {
             name: name.to_owned(),
             profile,
         }
+    }
+
+    pub fn save_avatar(&self, avatar: Option<Bytes>) -> Result<bool, Error> {
+        self.save_image(avatar, AVATAR_FILENAME, "avatar")
+    }
+
+    pub fn save_banner(&self, banner: Option<Bytes>) -> Result<bool, Error> {
+        self.save_image(banner, BANNER_FILENAME, "banner")
+    }
+
+    fn save_image(&self, image: Option<Bytes>, filename: &str, debug_name: &str) -> Result<bool, Error> {
+        if image.is_none() {
+            return Ok(false);
+        }
+        let image = image::load_from_memory(&image.unwrap())
+            .map_err(|err| Error::new(ErrorKind::Other, format!("Failed to load image {}; : {}.", debug_name, err)))?;
+        let path = Self::path(&self.name, filename)?;
+        let path = Path::new(&path);
+        image.save(&path)
+            .map_err(|err| Error::new(ErrorKind::Other, format!("Failed to save image; {}", err)))?;
+        Ok(true)
     }
 
     fn path(profile_name: &str, filename: &str) -> Result<PathBuf, Error> {

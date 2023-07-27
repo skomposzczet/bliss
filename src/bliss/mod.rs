@@ -31,12 +31,23 @@ impl Bliss {
     pub async fn pull(&self) -> Result<(), Error> {
         info!("Pulling {}@{} to local profile {}.",
                 self.user.username, instance_host(&self.user.instance), self.profile_name);
-        let site = self.api.site(&self.user)
-            .await
-            .map_err(|err| Error::ReqwestError(err))?;
+        let site = self.api.site(&self.user).await?;
         let profile = Profile::new(self.user.clone(), &site);
-        let mut lp = LocalProfile::new(&self.profile_name, profile);
-        lp.save().map_err(|err| Error::IoError(err))?;
+        let person = &site.my_user.clone().unwrap().local_user_view.person;
+        let avatar = self.api.get_image(&person.avatar).await?;
+        let banner = self.api.get_image(&person.banner).await?;
+        let mut lp = LocalProfile::new(
+            &self.profile_name,
+            profile,
+        );
+        lp.save()?;
+        info!("Successfully saved user profile.");
+        if lp.save_avatar(avatar)? {
+            info!("Successfully saved avatar.");
+        }
+        if lp.save_banner(banner)? {
+            info!("Successfully saved banner.");
+        }
         info!("Pulled successfully.");
         Ok(())
     }
