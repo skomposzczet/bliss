@@ -3,7 +3,7 @@ extern crate pretty_logger;
 use log::LogLevelFilter;
 
 mod user;
-mod api;
+mod lemmy;
 mod profile;
 mod bliss;
 

@@ -3,7 +3,7 @@ pub mod util;
 
 use std::{time::Duration, thread, cell::Cell};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
-use crate::{api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}, bliss::util::instance_host, log_res};
+use crate::{lemmy::api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}, bliss::util::instance_host, log_res};
 use self::error::Error;
 
 pub struct Bliss {
