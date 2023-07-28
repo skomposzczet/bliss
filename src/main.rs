@@ -54,6 +54,9 @@ enum Commands {
 
         #[arg(long, help="Parameters to ignore while pushing")]
         wno: Vec<String>,
+
+        #[arg(long, help="Nondefault parameters to include while pushing")]
+        include: Vec<String>,
     },
 }
 
@@ -74,11 +77,11 @@ async fn exec_command(cli: &Cli) -> Result<(), Error> {
             let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
             bliss.pull().await?;
         },
-        Some(Commands::Push { username, instance, token, profile_name, subtractive, wno }) => {
+        Some(Commands::Push { username, instance, token, profile_name, subtractive, wno, include }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
             let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
-            bliss.push(*subtractive, wno).await?;
+            bliss.push(*subtractive, wno, include).await?;
         },
         None => {}
     }
