@@ -1,7 +1,9 @@
+use crate::lemmy::LemmyError;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    ReqwestError( #[from] reqwest::Error ),
+    LemmyError( #[from] LemmyError ),
     #[error(transparent)]
     IoError( #[from] std::io::Error ),
     #[error("Error: {0}")]

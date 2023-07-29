@@ -6,12 +6,13 @@ use lemmy_api_common::community::{CommunityResponse, FollowCommunity, BlockCommu
 use lemmy_api_common::lemmy_db_schema::{SearchType, SortType};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId, DbUrl};
 use reqwest::multipart::{Part, Form};
-use reqwest::{Client, Error};
+use reqwest::Client;
 use url::Url;
 use lemmy_api_common::sensitive::Sensitive;
 use lemmy_api_common::person::{self, BlockPersonResponse, BlockPerson};
 use lemmy_api_common::site;
 
+use super::LemmyError;
 use super::image::UploadImageResponse;
 
 const API_BASE: &'static str = "/api/v3"; 
@@ -31,7 +32,7 @@ impl Api {
             client: Client::new(),
         }
     }
-    pub async fn login(&self, user: User<NotAuthorized>, password: String, token: Option<String>) -> Result<User<Authorized>, Error> {
+    pub async fn login(&self, user: User<NotAuthorized>, password: String, token: Option<String>) -> Result<User<Authorized>, LemmyError> {
         let url = api_path(&user.instance, "user/login");
         let params = person::Login {
             username_or_email: Sensitive::new(user.username.clone()),
@@ -51,7 +52,7 @@ impl Api {
         Ok(user.authorize(jwt.to_string()))
     }
 
-    pub async fn site(&self, user: &User<Authorized>) -> Result<site::GetSiteResponse, Error> {
+    pub async fn site(&self, user: &User<Authorized>) -> Result<site::GetSiteResponse, LemmyError> {
         let url = api_path(&user.instance, "site");
         let params = site::GetSite {
             auth: Some(Sensitive::from(user.token()))
@@ -65,7 +66,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn save_user_settings(&self, user: &User<Authorized>, profile: Profile) -> Result<person::LoginResponse, Error> {
+    pub async fn save_user_settings(&self, user: &User<Authorized>, profile: Profile) -> Result<person::LoginResponse, LemmyError> {
         let url = api_path(&user.instance, "user/save_user_settings");
         let mut settings = person::SaveUserSettings::from(profile);
         settings.auth = Sensitive::from(user.token());
@@ -78,7 +79,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn search_community(&self, user: &User<Authorized>, community: &Community) -> Result<site::SearchResponse, Error> {
+    pub async fn search_community(&self, user: &User<Authorized>, community: &Community) -> Result<site::SearchResponse, LemmyError> {
         let url = api_path(&user.instance, "search");
         let params = site::Search {
             q: community.name.clone(),
@@ -96,7 +97,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn search_person(&self, user: &User<Authorized>, person: &Person) -> Result<site::SearchResponse, Error> {
+    pub async fn search_person(&self, user: &User<Authorized>, person: &Person) -> Result<site::SearchResponse, LemmyError> {
         let url = api_path(&user.instance, "search");
         let params = site::Search {
             q: person.username.clone(),
@@ -115,7 +116,7 @@ impl Api {
     }
 
 
-    pub async fn follow_community(&self, user: &User<Authorized>, id: &CommunityId, follow: bool) -> Result<CommunityResponse, Error> {
+    pub async fn follow_community(&self, user: &User<Authorized>, id: &CommunityId, follow: bool) -> Result<CommunityResponse, LemmyError> {
         let url = api_path(&user.instance, "community/follow");
         let params = FollowCommunity {
             community_id: id.clone(),
@@ -131,7 +132,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn block_community(&self, user: &User<Authorized>, id: &CommunityId, block: bool) -> Result<BlockCommunityResponse, Error> {
+    pub async fn block_community(&self, user: &User<Authorized>, id: &CommunityId, block: bool) -> Result<BlockCommunityResponse, LemmyError> {
         let url = api_path(&user.instance, "community/block");
         let params = BlockCommunity {
             community_id: id.clone(),
@@ -147,7 +148,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn block_person(&self, user: &User<Authorized>, id: &PersonId, block: bool) -> Result<BlockPersonResponse, Error> {
+    pub async fn block_person(&self, user: &User<Authorized>, id: &PersonId, block: bool) -> Result<BlockPersonResponse, LemmyError> {
         let url = api_path(&user.instance, "user/block");
         let params = BlockPerson {
             person_id: id.clone(),
@@ -163,7 +164,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn download_image(&self, url: &Option<DbUrl>) -> Result<Option<bytes::Bytes>, Error> {
+    pub async fn download_image(&self, url: &Option<DbUrl>) -> Result<Option<bytes::Bytes>, LemmyError> {
         if url.is_none() {
             return Ok(None);
         }
@@ -181,7 +182,7 @@ impl Api {
         Ok(Some(bytes))
     }
 
-    pub async fn upload_image(&self, user: &User<Authorized>, bytes: Vec<u8>) -> Result<Option<Url>, Error> {
+    pub async fn upload_image(&self, user: &User<Authorized>, bytes: Vec<u8>) -> Result<Option<Url>, LemmyError> {
         let path = user.instance
             .join("pictrs/image")
             .unwrap();
@@ -198,13 +199,11 @@ impl Api {
             .send()
             .await?;
         if !response.status().is_success() {
-            debug!("Status is {}", response.status());
-            return Ok(None)
+            return Err(LemmyError::ResponeError(format!("Status is {}", response.status())));
         }
         let res: UploadImageResponse = serde_json::from_str(&response.text().await.unwrap()).unwrap();
         if res.msg != "ok" {
-            debug!("Msg is {}", res.msg);
-            return Ok(None)
+            return Err(LemmyError::ResponeError(format!("Msg is {}", res.msg)));
         }
         let url = user.instance
             .join(&format!("pictrs/image/{}", res.files[0].file))

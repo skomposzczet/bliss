@@ -57,8 +57,7 @@ impl Bliss {
         info!("Pushing {}@{} from local profile {}",
             self.user.username, instance_host(&self.user.instance), self.profile_name);
         self.subtractive.set(subtractive);
-        let profile = LocalProfile::load(&self.profile_name)
-            .map_err(|err| Error::IoError(err))?;
+        let profile = LocalProfile::load(&self.profile_name)?;
         let profile = self.tweak_profile(profile, exclude, include).await?;
         self.push_settings(profile.clone()).await?;
         self.push_info(&profile.info).await?;
@@ -126,15 +125,13 @@ impl Bliss {
     async fn push_settings(&self, profile: Profile) -> Result<(), Error> {
         info!("Uploading settings...");
         self.api.save_user_settings(&self.user, profile)
-            .await
-            .map_err(|err| Error::ReqwestError(err))?;
+            .await?;
         info!("Successfully uploaded settings.");
         Ok(())
     }
 
     async fn push_info(&self, info: &Info) -> Result<(), Error> {
-        let site = self.api.site(&self.user).await
-            .map_err(|err| Error::ReqwestError(err))?;
+        let site = self.api.site(&self.user).await?;
         let dst_profile = Profile::new(self.user.clone(), &site);
         let dst_info = dst_profile.info;
         let rate_limit = site
@@ -247,8 +244,7 @@ impl Bliss {
     }
 
     async fn find_community(&self, community: &Community) -> Result<CommunityId, Error> {
-        let response = self.api.search_community(&self.user, &community).await
-            .map_err(|err| Error::ReqwestError(err))?;
+        let response = self.api.search_community(&self.user, &community).await?;
         let community_id: Option<CommunityId> = {
             let found: Vec<_> = response.communities
                 .iter()
@@ -266,8 +262,7 @@ impl Bliss {
     }
 
     async fn find_person(&self, person: &Person) -> Result<PersonId, Error> {
-        let response = self.api.search_person(&self.user, &person).await
-            .map_err(|err| Error::ReqwestError(err))?;
+        let response = self.api.search_person(&self.user, &person).await?;
         let person_id: Option<PersonId> = {
             let found: Vec<_> = response.users
                 .iter()
