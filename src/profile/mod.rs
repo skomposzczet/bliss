@@ -176,16 +176,14 @@ impl Profile {
         self.meta.touch();
     }
 
-    pub fn ignore_parameters(mut self, ignore: &[String]) -> Self {
-        for param_name in ignore.iter() {
+    pub fn ignore_parameters(mut self, exclude: &[String]) -> Self {
+        for param_name in exclude.iter() {
             info!("Ignoring parameter \"{}\"...", param_name);
             match param_name.as_str() {
                 "email" => self.settings.email = None,
                 "matrix_user_id" => self.settings.matrix_user_id = None,
                 "bio" => self.info.bio = None,
                 "display_name" => self.info.display_name = None,
-                "avatar" => self.info.avatar = None,
-                "banner" => self.info.banner = None,
                 _ => error!("Unknown parameter \"{}\". Skipping.", param_name),
             }
         }
