@@ -1,4 +1,4 @@
-use std::{path::{PathBuf, Path}, io::{Error, Write, ErrorKind}, fs::{create_dir_all, File, self}};
+use std::{path::{PathBuf, Path}, io::{Error, Write, ErrorKind, Read}, fs::{create_dir_all, File, self}};
 use super::Profile;
 use bytes::Bytes;
 use home::home_dir;
@@ -41,6 +41,25 @@ impl LocalProfile {
         image.save(&path)
             .map_err(|err| Error::new(ErrorKind::Other, format!("Failed to save image; {}", err)))?;
         Ok(true)
+    }
+
+    pub fn load_avatar(&self) -> Result<Option<Vec<u8>>, Error> {
+        self.load_image(AVATAR_FILENAME)
+    }
+
+    pub fn load_banner(&self) -> Result<Option<Vec<u8>>, Error> {
+        self.load_image(BANNER_FILENAME)
+    }
+
+    fn load_image(&self, filename: &str) -> Result<Option<Vec<u8>>, Error> {
+        let path = Self::path(&self.name, filename)?;
+        if !path.exists() {
+            return Ok(None);
+        }
+        let mut file = File::open(&path)?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        Ok(Some(bytes))
     }
 
     fn path(profile_name: &str, filename: &str) -> Result<PathBuf, Error> {

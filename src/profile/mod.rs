@@ -41,10 +41,10 @@ pub struct Info {
     pub communities_blocks: Vec<Community>,
     pub communities_follows: Vec<Community>,
     pub people_blocks: Vec<Person>,
-    bio: Option<String>,
-    display_name: Option<String>,
-    avatar: Option<String>,
-    banner: Option<String>,
+    pub bio: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar: Option<String>,
+    pub banner: Option<String>,
 }
 
 impl Info {

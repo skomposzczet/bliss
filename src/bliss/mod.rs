@@ -3,6 +3,7 @@ pub mod util;
 
 use std::{time::Duration, thread, cell::Cell};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId};
+use url::Url;
 use crate::{lemmy::api::Api, user::{User, Authorized, NotAuthorized}, profile::{Profile, local_profile::LocalProfile, community::Community, person::Person, Info}, bliss::util::instance_host, log_res};
 use self::error::Error;
 
@@ -52,18 +53,74 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push(&self, subtractive: bool, ignore: &[String]) -> Result<(), Error> {
+    pub async fn push(&self, subtractive: bool, ignore: &[String], include: &[String]) -> Result<(), Error> {
         info!("Pushing {}@{} from local profile {}",
             self.user.username, instance_host(&self.user.instance), self.profile_name);
         self.subtractive.set(subtractive);
         let profile = LocalProfile::load(&self.profile_name)
-            .map_err(|err| Error::IoError(err))?
-            .profile
-            .ignore_parameters(ignore);
+            .map_err(|err| Error::IoError(err))?;
+        let profile = self.tweak_profile(profile, ignore, include).await?;
         self.push_settings(profile.clone()).await?;
         self.push_info(&profile.info).await?;
         info!("Pushed successfully.");
         Ok(())
+    }
+
+    async fn tweak_profile(&self, mut local_profile: LocalProfile, ignore: &[String], include: &[String]) -> Result<Profile, Error> {
+        local_profile.profile = local_profile
+            .profile
+            .ignore_parameters(&ignore);
+        for param in include.iter() {
+            match param.as_str() {
+                "avatar" => {
+                    let url = self.push_avatar(&local_profile).await?;
+                    local_profile.profile.info.avatar = match url {
+                        Some(url) => Some(url.to_string()),
+                        None => None,
+                    };
+                },
+                "banner" => {
+                    let url = self.push_banner(&local_profile).await?;
+                    local_profile.profile.info.banner = match url {
+                        Some(url) => Some(url.to_string()),
+                        None => None,
+                    };
+                },
+                _ => warn!("No parameter {} found.", param),
+            }
+        }
+        Ok(local_profile.profile)
+    }
+
+    async fn push_avatar(&self, profile: &LocalProfile) -> Result<Option<Url>, Error> {
+        self.push_image(profile.load_avatar()?, "avatar").await
+    }
+
+    async fn push_banner(&self, profile: &LocalProfile) -> Result<Option<Url>, Error> {
+        self.push_image(profile.load_banner()?, "banner").await
+    }
+
+    async fn push_image(&self, image: Option<Vec<u8>>, log_name: &str) -> Result<Option<Url>, Error> {
+        match image {
+            Some(bytes) => {
+                info!("Uploading {}...", log_name);
+                let url = self.api.upload_image(&self.user, bytes).await?;
+                match url {
+                    Some(url) => {
+                        info!("Success.");
+                        Ok(Some(url))
+                    },
+                    None => {
+                        warn!("Fail.");
+                        Ok(None)
+                    },
+                }
+            },
+            None => {
+                warn!("No {} found.", log_name);
+                Ok(None)
+            },
+        }
     }
 
     async fn push_settings(&self, profile: Profile) -> Result<(), Error> {
