@@ -32,4 +32,4 @@ Bliss will search for password in environment variables `LEMMY_SRC_PW` and `LEMM
 - [X] fullsync - unblock/unfollow communities/users that are not blocked/followed in source account (local profile)
 - [X] support 2fa login
 - [ ] change local profile path
-- [ ] sync avatar + banner
+- [X] sync avatar + banner
