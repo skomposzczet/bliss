@@ -5,11 +5,14 @@ use crate::user::{User, Authorized, NotAuthorized};
 use lemmy_api_common::community::{CommunityResponse, FollowCommunity, BlockCommunity, BlockCommunityResponse};
 use lemmy_api_common::lemmy_db_schema::{SearchType, SortType};
 use lemmy_api_common::lemmy_db_schema::newtypes::{CommunityId, PersonId, DbUrl};
+use reqwest::multipart::{Part, Form};
 use reqwest::{Client, Error};
 use url::Url;
 use lemmy_api_common::sensitive::Sensitive;
 use lemmy_api_common::person::{self, BlockPersonResponse, BlockPerson};
 use lemmy_api_common::site;
+
+use super::image::UploadImageResponse;
 
 const API_BASE: &'static str = "/api/v3"; 
 
@@ -176,5 +179,37 @@ impl Api {
             .bytes()
             .await?;
         Ok(Some(bytes))
+    }
+
+    pub async fn upload_image(&self, user: &User<Authorized>, bytes: Vec<u8>) -> Result<Option<Url>, Error> {
+        let path = user.instance
+            .join("pictrs/image")
+            .unwrap();
+        let part = Part::bytes(bytes)
+            .file_name("image")
+            .mime_str("image/png")
+            .unwrap();
+        let form = Form::new()
+            .part("images[]", part);
+        let response = self.client
+            .post(path)
+            .header("cookie", format!("jwt={}", user.token()))
+            .multipart(form)
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            debug!("Status is {}", response.status());
+            return Ok(None)
+        }
+        let res: UploadImageResponse = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+        if res.msg != "ok" {
+            debug!("Msg is {}", res.msg);
+            return Ok(None)
+        }
+        let url = user.instance
+            .join(&format!("pictrs/image/{}", res.files[0].file))
+            .unwrap();
+        debug!("URL: {}", url);
+        Ok(Some(url))
     }
 }
