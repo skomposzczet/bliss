@@ -163,7 +163,7 @@ impl Api {
         Ok(result)
     }
 
-    pub async fn get_image(&self, url: &Option<DbUrl>) -> Result<Option<bytes::Bytes>, Error> {
+    pub async fn download_image(&self, url: &Option<DbUrl>) -> Result<Option<bytes::Bytes>, Error> {
         if url.is_none() {
             return Ok(None);
         }

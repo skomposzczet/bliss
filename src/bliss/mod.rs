@@ -35,8 +35,8 @@ impl Bliss {
         let site = self.api.site(&self.user).await?;
         let profile = Profile::new(self.user.clone(), &site);
         let person = &site.my_user.clone().unwrap().local_user_view.person;
-        let avatar = self.api.get_image(&person.avatar).await?;
-        let banner = self.api.get_image(&person.banner).await?;
+        let avatar = self.api.download_image(&person.avatar).await?;
+        let banner = self.api.download_image(&person.banner).await?;
         let mut lp = LocalProfile::new(
             &self.profile_name,
             profile,
@@ -53,23 +53,23 @@ impl Bliss {
         Ok(())
     }
 
-    pub async fn push(&self, subtractive: bool, ignore: &[String], include: &[String]) -> Result<(), Error> {
+    pub async fn push(&self, subtractive: bool, exclude: &[String], include: &[String]) -> Result<(), Error> {
         info!("Pushing {}@{} from local profile {}",
             self.user.username, instance_host(&self.user.instance), self.profile_name);
         self.subtractive.set(subtractive);
         let profile = LocalProfile::load(&self.profile_name)
             .map_err(|err| Error::IoError(err))?;
-        let profile = self.tweak_profile(profile, ignore, include).await?;
+        let profile = self.tweak_profile(profile, exclude, include).await?;
         self.push_settings(profile.clone()).await?;
         self.push_info(&profile.info).await?;
         info!("Pushed successfully.");
         Ok(())
     }
 
-    async fn tweak_profile(&self, mut local_profile: LocalProfile, ignore: &[String], include: &[String]) -> Result<Profile, Error> {
+    async fn tweak_profile(&self, mut local_profile: LocalProfile, exclude: &[String], include: &[String]) -> Result<Profile, Error> {
         local_profile.profile = local_profile
             .profile
-            .ignore_parameters(&ignore);
+            .ignore_parameters(&exclude);
         for param in include.iter() {
             match param.as_str() {
                 "avatar" => {
