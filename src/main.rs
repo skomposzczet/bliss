@@ -52,7 +52,7 @@ enum Commands {
         #[arg(short, long, help="Unfollows and unblocks communities and users if not followed or blocked in local profile")]
         subtractive: bool,
 
-        #[arg(long, help="Parameters to ignore while pushing")]
+        #[arg(long, help="Parameters to exclude while pushing")]
         exclude: Vec<String>,
 
         #[arg(long, help="Nondefault parameters to include while pushing")]
@@ -77,11 +77,11 @@ async fn exec_command(cli: &Cli) -> Result<(), Error> {
             let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
             bliss.pull().await?;
         },
-        Some(Commands::Push { username, instance, token, profile_name, subtractive, exclude: wno, include }) => {
+        Some(Commands::Push { username, instance, token, profile_name, subtractive, exclude , include }) => {
             let pw = get_password(Origin::Destination);
             let user = User::new(username, instance);
             let bliss = Bliss::new(user, pw, token.to_owned(), profile_name).await?;
-            bliss.push(*subtractive, wno, include).await?;
+            bliss.push(*subtractive, exclude, include).await?;
         },
         None => {}
     }

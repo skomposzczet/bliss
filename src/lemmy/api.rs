@@ -16,6 +16,7 @@ use super::LemmyError;
 use super::image::UploadImageResponse;
 
 const API_BASE: &'static str = "/api/v3"; 
+const PICTRS_BASE : &'static str = "/pictrs/image"; 
 
 fn api_path(instance: &Url, path: &str) -> Url {
     let path = format!("{}/{}", API_BASE, path);
@@ -184,7 +185,7 @@ impl Api {
 
     pub async fn upload_image(&self, user: &User<Authorized>, bytes: Vec<u8>) -> Result<Option<Url>, LemmyError> {
         let path = user.instance
-            .join("pictrs/image")
+            .join(PICTRS_BASE)
             .unwrap();
         let part = Part::bytes(bytes)
             .file_name("image")
@@ -199,14 +200,14 @@ impl Api {
             .send()
             .await?;
         if !response.status().is_success() {
-            return Err(LemmyError::ResponeError(format!("Status is {}", response.status())));
+            return Err(LemmyError::ResponseError(format!("Status is {}", response.status())));
         }
         let res: UploadImageResponse = serde_json::from_str(&response.text().await.unwrap()).unwrap();
         if res.msg != "ok" {
-            return Err(LemmyError::ResponeError(format!("Msg is {}", res.msg)));
+            return Err(LemmyError::ResponseError(format!("Msg is {}", res.msg)));
         }
         let url = user.instance
-            .join(&format!("pictrs/image/{}", res.files[0].file))
+            .join(&format!("{}/{}", PICTRS_BASE, res.files[0].file))
             .unwrap();
         debug!("URL: {}", url);
         Ok(Some(url))

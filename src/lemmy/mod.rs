@@ -8,5 +8,5 @@ pub enum LemmyError {
     #[error(transparent)]
     IoError( #[from] std::io::Error ),
     #[error("ResponeError: {0}")]
-    ResponeError(String),
+    ResponseError(String),
 }
